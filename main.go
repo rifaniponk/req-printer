@@ -6,9 +6,21 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/kr/pretty"
+	logr "github.com/sirupsen/logrus"
 )
+
+var (
+	PRETTY_PAYLOAD = true
+	PRETTY_HEADER  = true
+)
+
+func init() {
+	PRETTY_PAYLOAD = os.Getenv("PRETTY_PAYLOAD") == "true"
+	PRETTY_HEADER = os.Getenv("PRETTY_HEADER") == "true"
+}
 
 func print(w http.ResponseWriter, req *http.Request) {
 	// Read body
@@ -23,22 +35,22 @@ func print(w http.ResponseWriter, req *http.Request) {
 	json.Unmarshal(b, &obj)
 
 	log.Print("======================================== HEADER ================================================")
-	pretty.Log(req.Header)
+	if PRETTY_PAYLOAD {
+		pretty.Log(req.Header)
+	} else {
+		logr.WithFields(logr.Fields{"header": req.Header}).Info()
+	}
 	log.Print("======================================== END HEADER ================================================")
+
 	log.Print("=========================================== PAYLOAD =============================================")
-	pretty.Log(obj)
+	if PRETTY_PAYLOAD {
+		pretty.Log(obj)
+	} else {
+		log.Printf(string(b))
+	}
 	log.Print("=========================================== END PAYLOAD =============================================")
 
 	fmt.Fprintf(w, "OK\n")
-}
-
-func headers(w http.ResponseWriter, req *http.Request) {
-
-	for name, headers := range req.Header {
-		for _, h := range headers {
-			fmt.Fprintf(w, "%v: %v\n", name, h)
-		}
-	}
 }
 
 func main() {
